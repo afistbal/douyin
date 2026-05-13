@@ -1,5 +1,6 @@
 import resource from '../assets/data/resource.js'
 import posts6 from '@/assets/data/posts6.json'
+import { SHORTS_DEMO_VIDEOS, type ShortsDemoVideoItem } from '@/constants/shortsDemoVideos'
 import { _fetch, cloneDeep, random } from '@/utils'
 import { BASE_URL, FILE_URL } from '@/config'
 import { useBaseStore } from '@/store/pinia'
@@ -20,6 +21,21 @@ let allRecommendVideos = posts6.map((v: any) => {
   v.type = 'recommend-video'
   return v
 })
+
+/** 仅首页 GET /video/recommended 使用；其它 mock 仍用 allRecommendVideos（posts6） */
+function buildHomeShortsDemoAweme(demo: ShortsDemoVideoItem) {
+  const item: any = cloneDeep((posts6 as any[])[0])
+  item.type = 'recommend-video'
+  item.aweme_id = `shorts-demo-${demo.id}`
+  item.desc = demo.title ?? `Short demo #${demo.id}`
+  item.video.play_addr.url_list = [demo.url]
+  const coverUrl = `https://picsum.photos/seed/yogo${demo.id}/720/1280.jpg`
+  item.video.cover.url_list = [coverUrl]
+  item.video.poster = coverUrl
+  return item
+}
+
+const homeShortsDemoFeedList = SHORTS_DEMO_VIDEOS.map(buildHomeShortsDemoAweme)
 
 // console.log('allRecommendVideos', allRecommendVideos)
 // eslint-disable-next-line
@@ -135,13 +151,15 @@ async function fetchData() {
 export async function startMock() {
   mock.onGet(/video\/recommended/).reply(async (config) => {
     const { start, pageSize } = config.params
-    // console.log('allRecommendVideos', cloneDeep(allRecommendVideos.length), config.params)
+    const s = Number(start) || 0
+    const ps = Number(pageSize) || 10
+    const total = homeShortsDemoFeedList.length
     return [
       200,
       {
         data: {
-          total: 844,
-          list: allRecommendVideos.slice(start, start + pageSize) // list: allRecommendVideos.slice(0, 6),
+          total,
+          list: homeShortsDemoFeedList.slice(s, s + ps)
         },
         code: 200,
         msg: ''
